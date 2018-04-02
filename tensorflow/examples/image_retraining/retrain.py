@@ -1190,7 +1190,7 @@ def main(_):
                         bottleneck_tensor, FLAGS.architecture)
 
     # Create the operations we need to evaluate the accuracy of our new layer.
-    evaluation_step, _ = add_evaluation_step(final_tensor, ground_truth_input)
+    evaluation_step, _, _ = add_evaluation_step(final_tensor, ground_truth_input)
 
     # Merge all the summaries and write them out to the summaries_dir
     merged = tf.summary.merge_all()
