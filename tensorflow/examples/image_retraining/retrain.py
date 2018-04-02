@@ -1089,7 +1089,7 @@ def export_model(model_info, class_count, saved_model_dir):
     saved_model_dir: Directory in which to save exported model and variables.
   """
   # The SavedModel should hold the eval graph.
-  sess, _, _, _, _ = build_eval_session(model_info, class_count)
+  sess, _, _, _, _, _ = build_eval_session(model_info, class_count)
   graph = sess.graph
   with graph.as_default():
     input_tensor = model_info['resized_input_tensor_name']
