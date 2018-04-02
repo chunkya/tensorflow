@@ -849,10 +849,11 @@ def add_evaluation_step(result_tensor, ground_truth_tensor):
     with tf.name_scope('correct_prediction'):
       prediction = tf.argmax(result_tensor, 1)
       correct_prediction = tf.equal(prediction, ground_truth_tensor)
+      confusion_matrix = tf.confusion_matrix(ground_truth_tensor, prediction)
     with tf.name_scope('accuracy'):
       evaluation_step = tf.reduce_mean(tf.cast(correct_prediction, tf.float32))
   tf.summary.scalar('accuracy', evaluation_step)
-  return evaluation_step, prediction
+  return evaluation_step, prediction, confusion_matrix
 
 
 def run_final_eval(sess, model_info, class_count, image_lists, jpeg_data_tensor,
@@ -871,7 +872,7 @@ def run_final_eval(sess, model_info, class_count, image_lists, jpeg_data_tensor,
     bottleneck_tensor: The bottleneck output layer of the CNN graph.
   """
   (sess, bottleneck_input, ground_truth_input, evaluation_step,
-   prediction) = build_eval_session(model_info, class_count)
+   prediction, confusion_matrix) = build_eval_session(model_info, class_count)
 
   test_bottlenecks, test_ground_truth, test_filenames = (
       get_random_cached_bottlenecks(sess, image_lists, FLAGS.test_batch_size,
@@ -880,7 +881,7 @@ def run_final_eval(sess, model_info, class_count, image_lists, jpeg_data_tensor,
                                     decoded_image_tensor, resized_image_tensor,
                                     bottleneck_tensor, FLAGS.architecture))
   test_accuracy, predictions = sess.run(
-      [evaluation_step, prediction],
+      [evaluation_step, prediction, confusion_matrix],
       feed_dict={
           bottleneck_input: test_bottlenecks,
           ground_truth_input: test_ground_truth
@@ -888,6 +889,8 @@ def run_final_eval(sess, model_info, class_count, image_lists, jpeg_data_tensor,
   tf.logging.info('Final test accuracy = %.1f%% (N=%d)' %
                   (test_accuracy * 100, len(test_bottlenecks)))
 
+  tf.logging.info('Confusion matrix:')
+  tf.logging.info(confusion_matrix)
   if FLAGS.print_misclassified_test_images:
     tf.logging.info('=== MISCLASSIFIED TEST IMAGES ===')
     for i, test_filename in enumerate(test_filenames):
@@ -923,16 +926,16 @@ def build_eval_session(model_info, class_count):
     # graph.
     tf.train.Saver().restore(eval_sess, CHECKPOINT_NAME)
 
-    evaluation_step, prediction = add_evaluation_step(final_tensor,
+    evaluation_step, prediction, confusion_matrix = add_evaluation_step(final_tensor,
                                                       ground_truth_input)
 
   return (eval_sess, bottleneck_input, ground_truth_input, evaluation_step,
-          prediction)
+          prediction, confusion_matrix)
 
 
 def save_graph_to_file(graph, graph_file_name, model_info, class_count):
   """Saves an graph to file, creating a valid quantized one if necessary."""
-  sess, _, _, _, _ = build_eval_session(model_info, class_count)
+  sess, _, _, _, _, _ = build_eval_session(model_info, class_count)
   graph = sess.graph
 
   output_graph_def = graph_util.convert_variables_to_constants(
