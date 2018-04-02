@@ -880,7 +880,7 @@ def run_final_eval(sess, model_info, class_count, image_lists, jpeg_data_tensor,
                                     FLAGS.image_dir, jpeg_data_tensor,
                                     decoded_image_tensor, resized_image_tensor,
                                     bottleneck_tensor, FLAGS.architecture))
-  test_accuracy, predictions = sess.run(
+  test_accuracy, predictions, test_confusion_matrix = sess.run(
       [evaluation_step, prediction, confusion_matrix],
       feed_dict={
           bottleneck_input: test_bottlenecks,
@@ -890,7 +890,7 @@ def run_final_eval(sess, model_info, class_count, image_lists, jpeg_data_tensor,
                   (test_accuracy * 100, len(test_bottlenecks)))
 
   tf.logging.info('Confusion matrix:')
-  tf.logging.info(confusion_matrix)
+  tf.logging.info(test_confusion_matrix)
   if FLAGS.print_misclassified_test_images:
     tf.logging.info('=== MISCLASSIFIED TEST IMAGES ===')
     for i, test_filename in enumerate(test_filenames):
